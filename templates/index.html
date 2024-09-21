@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Book Recommendation</title>
+</head>
+<body>
+    <h1>Book Recommendation System</h1>
+    <form action="/recommend" method="POST">
+        <label for="book_title">Enter the title of the last book you read:</label>
+        <input type="text" name="book_title" id="book_title" required>
+        <button type="submit">Get Recommendations</button>
+    </form>
+    {% if message %}
+    <p>{{ message }}</p>
+    {% endif %}
+</body>
+</html>
