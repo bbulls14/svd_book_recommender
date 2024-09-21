@@ -1,1 +1,1 @@
-web: gunicorn app:bulls-book-rec
+web: gunicorn app:app
