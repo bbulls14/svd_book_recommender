@@ -13,6 +13,7 @@ def download_svd_model():
         aws_access_key_id=AWS_ACCESS_KEY,
         aws_secret_access_key=AWS_SECRET_KEY,
         region_name=AWS_REGION)
+    
     bucket_name = 'svdmodel'  
     file_key = 'svd_model.pkl'
     download_path = '/tmp/svd_model.pkl'
