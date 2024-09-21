@@ -1,2 +1,4 @@
 .venv
 surprise
+joined_dataset.csv
+svd_model.pkl
