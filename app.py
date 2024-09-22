@@ -53,7 +53,6 @@ def svd_ratings_and_confidence(user_id, unique_books, similar_users, df, model):
     #get book ratings for similar user
     book_ratings = df[df['User-ID'].isin(similar_users)].groupby('ISBN').size()
     max_ratings = book_ratings.max()
-    high_ratings_count = df[(df['User-ID'].isin(similar_users)) & (df['Book-Rating'] > 7)].groupby('ISBN').size()
 
     #predict rating and calc confidence
     books_predictions_confidence = []
@@ -61,8 +60,9 @@ def svd_ratings_and_confidence(user_id, unique_books, similar_users, df, model):
         prediction = model.predict(user_id, book[0]).est  
         
         num_ratings = book_ratings.get(book[0], 1) 
-        
-        confidence = (num_ratings / max_ratings * 100) if max_ratings > 0 else 0
+        total_similar_users = len(similar_users)
+        confidence = (num_ratings / total_similar_users) * 100 if total_similar_users != 0 else 0
+
         books_predictions_confidence.append((book[1], book[2], prediction, confidence))
 
     return sorted(books_predictions_confidence, key=lambda x: x[2], reverse=True)
