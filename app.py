@@ -87,7 +87,7 @@ def get_book_recommendations(user_id, book_isbn):
         user_books = df[df['User-ID'] == user].sort_values(by='Book-Rating', ascending=False).head(10)
         top_books.extend(user_books[['ISBN', 'Book-Title', 'Book-Author']].values.tolist())
     
-    #remove duplicate books using isbn
+    #remove duplicate books using isbn and title
     unique_books = remove_duplicate_books(top_books)
     
     #use svd to predict rating and determine confidence
@@ -103,12 +103,13 @@ def get_book_recommendations(user_id, book_isbn):
     return book_list
 
 def remove_duplicate_books(top_books):
+    books = top_books.drop_duplicates(subset='Book-Title')
     seen_isbns = set()
     unique_books = []
-    for book in top_books:
-        if book[0] not in seen_isbns:
-            seen_isbns.add(book[0])
-            unique_books.append(book)
+    for b in books:
+        if b[0] not in seen_isbns:
+            seen_isbns.add(b[0])
+            unique_books.append(b)
     return unique_books
 
 
