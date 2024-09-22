@@ -60,7 +60,7 @@ def svd_ratings_and_confidence(user_id, unique_books, similar_users, df, model):
     for book in unique_books:
         prediction = model.predict(user_id, book[0]).est  
         
-        num_ratings = book_ratings.get(book[0])
+        num_ratings = book_ratings.get(book[0], 1) 
         
         confidence = (num_ratings / max_ratings) * 100 
         books_predictions_confidence.append((book[1], book[2], prediction, confidence))
