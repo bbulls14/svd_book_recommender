@@ -2,13 +2,12 @@ from flask import Flask, request, render_template
 import pandas as pd
 import pickle
 import requests
-import os
 
 
 app = Flask(__name__)
 
 
-#download svd_model from s3 for heroku b/c file to large for git
+#download svd_model from s3 for heroku b/c file too large for git
 def download_svd_model():
     url = 'https://svdmodel.s3.us-east-2.amazonaws.com/svd_model.pkl'
     response = requests.get(url)
@@ -94,10 +93,10 @@ def get_book_recommendations(user_id, book_isbn):
 
     return book_list
 
-def remove_duplicate_books(books):
+def remove_duplicate_books(top_books):
     seen_isbns = set()
     unique_books = []
-    for book in books:
+    for book in top_books:
         if book[0] not in seen_isbns:
             seen_isbns.add(book[0])
             unique_books.append(book)
