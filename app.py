@@ -29,7 +29,7 @@ def recommend():
     if book_data.empty:
         return render_template('index.html', message="Book not found!")
 
-    #use nonexistent user_id for predictions with surprise
+    #use nonexistent userid for predictions with surprise
     user_id = 276723
     
     
