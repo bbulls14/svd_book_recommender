@@ -1,17 +1,30 @@
 from flask import Flask, request, render_template
 import pandas as pd
 import pickle
+import requests
+import os
 
 
 app = Flask(__name__)
 
 
-#load svd_model and joined_dataset
-def load_svd_model():
-    with open('svd_model.pkl', 'rb') as file:
-        return pickle.load(file)
+#download svd_model from s3 for heroku b/c file to large for git
+def download_svd_model():
+    local_path = 'svd_model.pkl'
 
-model = load_svd_model()
+    if not os.path.exists(local_path):
+        print("Downloading the model...")
+        response = requests.get('https://svdmodel.s3.us-east-2.amazonaws.com/svd_model.pkl')
+        with open(local_path, 'wb') as file:
+            file.write(response.content)
+        print("Model downloaded successfully.")
+
+    # Load the model after downloading
+    with open(local_path, 'rb') as file:
+        model = pickle.load(file)
+    return model
+
+model = download_svd_model()
 df = pd.read_csv('joined_dataset.csv')
 
 
