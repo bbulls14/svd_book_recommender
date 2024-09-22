@@ -62,7 +62,7 @@ def svd_ratings_and_confidence(user_id, unique_books, similar_users, df, model):
         
         num_ratings = book_ratings.get(book[0], 1) 
         
-        confidence = (num_ratings / max_ratings) * 100 
+        confidence = (num_ratings / max_ratings * 100) if max_ratings > 0 else 0
         books_predictions_confidence.append((book[1], book[2], prediction, confidence))
 
     return sorted(books_predictions_confidence, key=lambda x: x[2], reverse=True)
