@@ -1,34 +1,21 @@
 from flask import Flask, request, render_template
 import pandas as pd
-import os
-import boto3
 import pickle
 
-AWS_ACCESS_KEY = os.getenv('AWS_ACCESS_KEY_ID')
-AWS_SECRET_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
-AWS_REGION = os.getenv('AWS_REGION')
 
-def download_svd_model():
-    s3 = boto3.client('s3',
-        aws_access_key_id=AWS_ACCESS_KEY,
-        aws_secret_access_key=AWS_SECRET_KEY,
-        region_name=AWS_REGION)
-    
-    bucket_name = 'svdmodel'  
-    file_key = 'svd_model.pkl'
-    download_path = '/tmp/svd_model.pkl'
-
-    s3.download_file(bucket_name, file_key, download_path)
-
-    with open(download_path, 'rb') as file:
+def load_svd_model():    
+    with open('svd_model.pkl', 'rb') as file:
         model = pickle.load(file)
     return model
 
-model = download_svd_model()
+model = load_svd_model()
 
 df = pd.read_csv('joined_dataset.csv')
 
 app = Flask(__name__)
+
+item_rating_counts = df.groupby('ISBN')['Book-Rating'].count().to_dict()
+max_ratings = max(item_rating_counts.values()) 
 
 @app.route('/')
 def index():
@@ -72,12 +59,18 @@ def get_book_recommendations(user_id, book_isbn):
         if book[0] not in seen_isbns:
             seen_isbns.add(book[0])
             unique_books.append(book)
-            
+
+    book_ratings = df[df['User-ID'].isin(high_rated_users)].groupby('ISBN').size()
+    max_ratings_in_subset = book_ratings.max()
+
     #predict rating for books
     books_with_predictions = []
     for book in unique_books:
         prediction = model.predict(user_id, book[0]).est  
-        books_with_predictions.append((book[1], book[2], prediction))
+        
+        num_ratings = book_ratings.get(book[0], 1)  # Get number of ratings or default to 1 if not found
+        confidence = (num_ratings / max_ratings_in_subset) * 100  # Confidence as a percentage
+        books_with_predictions.append((book[1], book[2], prediction, confidence))
 
     sorted_books = sorted(books_with_predictions, key=lambda x: x[2], reverse=True)
 
@@ -85,12 +78,11 @@ def get_book_recommendations(user_id, book_isbn):
     top_books = sorted_books[:5]
 
     #use list of dicts so HTML can access items
-    book_list = [{'Book-Title': title, 'Book-Author': author} for title, author, _ in top_books]
+    book_list = [{'Book-Title': title, 'Book-Author': author, 'Predicted-Rating': round(pred, 2), 'Confidence': round(conf, 2)} 
+                 for title, author, pred, conf in top_books]
 
     return book_list
 
 if __name__ == '__main__':
     app.run(debug=True)
-
-
 
