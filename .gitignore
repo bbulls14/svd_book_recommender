@@ -1,2 +1,3 @@
 .venv
 datasets
+svd_model.pkl
