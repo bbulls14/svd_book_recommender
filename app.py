@@ -42,7 +42,7 @@ def recommend():
 #calc confidence by combining popularity and percentage of high ratings 
 def svd_ratings_and_confidence(user_id, unique_books, similar_users, df, model):
     
-    #get book ratings for similar users
+    #get book ratings for similar user
     book_ratings = df[df['User-ID'].isin(similar_users)].groupby('ISBN').size()
     max_ratings = book_ratings.max()
     high_ratings_count = df[(df['User-ID'].isin(similar_users)) & (df['Book-Rating'] > 7)].groupby('ISBN').size()
