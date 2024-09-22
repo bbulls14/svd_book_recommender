@@ -9,13 +9,26 @@ app = Flask(__name__)
 
 #download svd_model from s3 for heroku b/c file too large for git
 def download_svd_model():
-    url = 'https://svdmodel.s3.us-east-2.amazonaws.com/svd_model.pkl'
-    response = requests.get(url)
+    file_path = "/tmp/svd_model.pkl"
+
+    if os.path.exists(file_path):
+        print("Model already exists, loading from local file.")
+        with open(file_path, "rb") as file:
+            model = pickle.load(file)
+            
+    else:
+        print("Model not found, downloading...")
+        url = 'https://svdmodel.s3.us-east-2.amazonaws.com/svd_model.pkl'
+        response = requests.get(url)
+        
+        # Write the content to the local file
+        with open(file_path, "wb") as file:
+            file.write(response.content)
+        
+        # Load the model after downloading
+        with open(file_path, "rb") as file:
+            model = pickle.load(file)
     
-    with open("/tmp/svd_model.pkl", "wb") as file:
-        file.write(response.content)
-    with open("/tmp/svd_model.pkl", "rb") as file:
-        model = pickle.load(file)
     return model
 
 model = download_svd_model()
