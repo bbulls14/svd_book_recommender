@@ -3,19 +3,17 @@ import pandas as pd
 import pickle
 
 
-def load_svd_model():    
-    with open('svd_model.pkl', 'rb') as file:
-        model = pickle.load(file)
-    return model
-
-model = load_svd_model()
-
-df = pd.read_csv('joined_dataset.csv')
-
 app = Flask(__name__)
 
-item_rating_counts = df.groupby('ISBN')['Book-Rating'].count().to_dict()
-max_ratings = max(item_rating_counts.values()) 
+
+#load svd_model and joined_dataset
+def load_svd_model():
+    with open('svd_model.pkl', 'rb') as file:
+        return pickle.load(file)
+
+model = load_svd_model()
+df = pd.read_csv('joined_dataset.csv')
+
 
 @app.route('/')
 def index():
@@ -23,14 +21,15 @@ def index():
 
 @app.route('/recommend', methods=['POST'])
 def recommend():
-    #get book that contains title input
+    
+    #get first book that contains user input, ignore case
     book_title = request.form['book_title']
     book_data = df[df['Book-Title'].str.contains(book_title, case=False, na=False)].head(1)
 
     if book_data.empty:
         return render_template('index.html', message="Book not found!")
 
-    #set userid to nonexistent user for predictions
+    #use nonexistent user_id for predictions with surprise
     user_id = 276723
     
     
@@ -39,49 +38,63 @@ def recommend():
 
     return render_template('recommendations.html', books=recommendations)
 
-def get_book_recommendations(user_id, book_isbn):
+#use model to predict ratings based on other users ratings
+#calc confidence by combining popularity and percentage of high ratings 
+def svd_ratings_and_confidence(user_id, unique_books, similar_users, df, model):
     
-    
-    #get books rated highly by users who rated book_isbn
-    high_rated_users = df[(df['ISBN'] == book_isbn) & (df['Book-Rating'] >= 8)]['User-ID'].unique()
+    #get book ratings for similar users
+    book_ratings = df[df['User-ID'].isin(similar_users)].groupby('ISBN').size()
+    max_ratings = book_ratings.max()
+    high_ratings_count = df[(df['User-ID'].isin(similar_users)) & (df['Book-Rating'] > 7)].groupby('ISBN').size()
 
-    #get top 10 books from each user
-    top_books = []
-    for high_user in high_rated_users:
-        user_books = df[df['User-ID'] == high_user]
-        top_user_books = user_books.sort_values(by='Book-Rating', ascending=False).head(10)
-        top_books.extend(top_user_books[['ISBN', 'Book-Title', 'Book-Author']].values.tolist())
-    
-    #remove duplicate books using isbn
-    seen_isbns = set()
-    unique_books = []
-    for book in top_books:
-        if book[0] not in seen_isbns:
-            seen_isbns.add(book[0])
-            unique_books.append(book)
-
-    book_ratings = df[df['User-ID'].isin(high_rated_users)].groupby('ISBN').size()
-    max_ratings_in_subset = book_ratings.max()
-
-    #predict rating for books
-    books_with_predictions = []
+    #predict rating and calc confidence
+    books_predictions_confidence = []
     for book in unique_books:
         prediction = model.predict(user_id, book[0]).est  
         
-        num_ratings = book_ratings.get(book[0], 1)  # Get number of ratings or default to 1 if not found
-        confidence = (num_ratings / max_ratings_in_subset) * 100  # Confidence as a percentage
-        books_with_predictions.append((book[1], book[2], prediction, confidence))
+        num_ratings = book_ratings.get(book[0])
+        
+        confidence = (num_ratings / max_ratings) * 100 
+        books_predictions_confidence.append((book[1], book[2], prediction, confidence))
 
-    sorted_books = sorted(books_with_predictions, key=lambda x: x[2], reverse=True)
+    return sorted(books_predictions_confidence, key=lambda x: x[2], reverse=True)
+    
+
+def get_book_recommendations(user_id, book_isbn):
+    
+    #get books rated highly by users who rated book_isbn highly
+    similar_users = df[(df['ISBN'] == book_isbn) & (df['Book-Rating'] >= 8)]['User-ID'].unique()
+
+    #get top 10 books from each user
+    top_books = []
+    for user in similar_users:
+        user_books = df[df['User-ID'] == user].sort_values(by='Book-Rating', ascending=False).head(10)
+        top_books.extend(user_books[['ISBN', 'Book-Title', 'Book-Author']].values.tolist())
+    
+    #remove duplicate books using isbn
+    unique_books = remove_duplicate_books(top_books)
+    
+    #use svd to predict rating and determine confidence
+    sorted_books = svd_ratings_and_confidence(user_id, unique_books, similar_users, df, model)
 
     #keep top 5
     top_books = sorted_books[:5]
 
-    #use list of dicts so HTML can access items
+    #use list of dicts so recommendations.html can iterate through items
     book_list = [{'Book-Title': title, 'Book-Author': author, 'Predicted-Rating': round(pred, 2), 'Confidence': round(conf, 2)} 
                  for title, author, pred, conf in top_books]
 
     return book_list
+
+def remove_duplicate_books(books):
+    seen_isbns = set()
+    unique_books = []
+    for book in books:
+        if book[0] not in seen_isbns:
+            seen_isbns.add(book[0])
+            unique_books.append(book)
+    return unique_books
+
 
 if __name__ == '__main__':
     app.run(debug=True)
