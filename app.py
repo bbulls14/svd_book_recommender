@@ -55,17 +55,19 @@ def recommend():
     return render_template('recommendations.html', books=recommendations)
 
 #use model to predict ratings based on other users ratings
-#calc confidence by combining popularity and percentage of high ratings 
-def svd_ratings(user_id, unique_books, model):
+#Sort recommendations by rating and popularity 
+def svd_ratings(user_id, unique_books, df, model):
     
-    #predict rating
+    book_ratings_count = df.groupby('ISBN').size()
+
     books_predictions = []
     for book in unique_books:
         prediction = model.predict(user_id, book[0]).est  
+        num_ratings = book_ratings_count.get(book[0], 0) 
 
-        books_predictions.append((book[1], book[2], prediction))
+        books_predictions.append((book[1], book[2], prediction, num_ratings))
 
-    return sorted(books_predictions, key=lambda x: x[2], reverse=True)
+    return sorted(books_predictions, key=lambda x: (int(x[2]), x[3], x[2]), reverse=True)
     
 
 def get_book_recommendations(user_id, book_isbn):
@@ -73,38 +75,38 @@ def get_book_recommendations(user_id, book_isbn):
     #get books rated highly by users who rated book_isbn highly
     similar_users = df[(df['ISBN'] == book_isbn) & (df['Book-Rating'] >= 8)]['User-ID'].unique()
 
-    #get top 10 books from each user
+    #get top 20 books from each user
     top_books = []
     for user in similar_users:
-        user_books = df[df['User-ID'] == user].sort_values(by='Book-Rating', ascending=False).head(10)
+        user_books = df[df['User-ID'] == user].sort_values(by='Book-Rating', ascending=False).head(20)
         top_books.extend(user_books[['ISBN', 'Book-Title', 'Book-Author']].values.tolist())
     
     #remove duplicate books using isbn and title
     unique_books = remove_duplicate_books(top_books)
     
     #use svd to predict rating and determine confidence
-    sorted_books = svd_ratings(user_id, unique_books, model)
+    sorted_books = svd_ratings(user_id, unique_books, df, model)
 
     #keep top 5
     top_books = sorted_books[:5]
 
     #use list of dicts so recommendations.html can iterate through items
     book_list = [{'Book-Title': title, 'Book-Author': author, 'Predicted-Rating': round(pred, 2)} 
-                 for title, author, pred, conf in top_books]
+                 for title, author, pred in top_books]
 
     return book_list
 
 def remove_duplicate_books(top_books):
-    seen_isbns = set()
-    seen_titles = set()
+    duplicate_isbns = set()
+    duplicate_titles = set()
     unique_books = []
     
     for book in top_books:
         isbn, title = book[0], book[1]
         
-        if isbn not in seen_isbns and title not in seen_titles:
-            seen_isbns.add(isbn)
-            seen_titles.add(title)
+        if isbn not in duplicate_isbns and title not in duplicate_titles:
+            duplicate_isbns.add(isbn)
+            duplicate_titles.add(title)
             unique_books.append(book)
     
     return unique_books
