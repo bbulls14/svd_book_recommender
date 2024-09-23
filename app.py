@@ -56,23 +56,16 @@ def recommend():
 
 #use model to predict ratings based on other users ratings
 #calc confidence by combining popularity and percentage of high ratings 
-def svd_ratings_and_confidence(user_id, unique_books, similar_users, df, model):
+def svd_ratings(user_id, unique_books, model):
     
-    #get book ratings for similar user
-    book_ratings = df[df['User-ID'].isin(similar_users)].groupby('ISBN').size()
-
-    #predict rating and calc confidence
-    books_predictions_confidence = []
+    #predict rating
+    books_predictions = []
     for book in unique_books:
         prediction = model.predict(user_id, book[0]).est  
-        
-        num_ratings = book_ratings.get(book[0], 1) 
-        total_similar_users = len(similar_users)
-        confidence = (num_ratings / total_similar_users) * 100 if total_similar_users != 0 else 0
 
-        books_predictions_confidence.append((book[1], book[2], prediction, confidence))
+        books_predictions.append((book[1], book[2], prediction))
 
-    return sorted(books_predictions_confidence, key=lambda x: x[2], reverse=True)
+    return sorted(books_predictions, key=lambda x: x[2], reverse=True)
     
 
 def get_book_recommendations(user_id, book_isbn):
@@ -90,13 +83,13 @@ def get_book_recommendations(user_id, book_isbn):
     unique_books = remove_duplicate_books(top_books)
     
     #use svd to predict rating and determine confidence
-    sorted_books = svd_ratings_and_confidence(user_id, unique_books, similar_users, df, model)
+    sorted_books = svd_ratings(user_id, unique_books, model)
 
     #keep top 5
     top_books = sorted_books[:5]
 
     #use list of dicts so recommendations.html can iterate through items
-    book_list = [{'Book-Title': title, 'Book-Author': author, 'Predicted-Rating': round(pred, 2), 'Confidence': round(conf, 0)} 
+    book_list = [{'Book-Title': title, 'Book-Author': author, 'Predicted-Rating': round(pred, 2)} 
                  for title, author, pred, conf in top_books]
 
     return book_list

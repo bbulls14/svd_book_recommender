@@ -9,7 +9,7 @@
     <h1>Recommended Books</h1>
     <ul>
         {% for b in books %}
-        <li>{{ b['Book-Title'] }} by {{ b['Book-Author'] }}  Predicted Rating - {{ b['Predicted-Rating'] }}  Confidence - {{ b['Confidence'] }}%</li>
+        <li>{{ b['Book-Title'] }} by {{ b['Book-Author'] }}  Predicted Rating - {{ b['Predicted-Rating'] }}</li>
         {% endfor %}
     </ul>
     <a href="/">Go Back</a>
