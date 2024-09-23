@@ -91,8 +91,8 @@ def get_book_recommendations(user_id, book_isbn):
     top_books = sorted_books[:5]
 
     #use list of dicts so recommendations.html can iterate through items
-    book_list = [{'Book-Title': title, 'Book-Author': author, 'Predicted-Rating': round(pred, 2)} 
-                 for title, author, pred in top_books]
+    book_list = [{'Book-Title': title, 'Book-Author': author, 'Predicted-Rating': round(pred, 2), 'Ratings-Count': num} 
+                 for title, author, pred, num in top_books]
 
     return book_list
 
