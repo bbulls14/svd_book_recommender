@@ -60,7 +60,6 @@ def svd_ratings_and_confidence(user_id, unique_books, similar_users, df, model):
     
     #get book ratings for similar user
     book_ratings = df[df['User-ID'].isin(similar_users)].groupby('ISBN').size()
-    max_ratings = book_ratings.max()
 
     #predict rating and calc confidence
     books_predictions_confidence = []
@@ -97,20 +96,26 @@ def get_book_recommendations(user_id, book_isbn):
     top_books = sorted_books[:5]
 
     #use list of dicts so recommendations.html can iterate through items
-    book_list = [{'Book-Title': title, 'Book-Author': author, 'Predicted-Rating': round(pred, 2), 'Confidence': round(conf, 2)} 
+    book_list = [{'Book-Title': title, 'Book-Author': author, 'Predicted-Rating': round(pred, 2), 'Confidence': round(conf, 0)} 
                  for title, author, pred, conf in top_books]
 
     return book_list
 
 def remove_duplicate_books(top_books):
-    books = top_books.drop_duplicates(subset='Book-Title')
     seen_isbns = set()
+    seen_titles = set()
     unique_books = []
-    for b in books:
-        if b[0] not in seen_isbns:
-            seen_isbns.add(b[0])
-            unique_books.append(b)
+    
+    for book in top_books:
+        isbn, title = book[0], book[1]
+        
+        if isbn not in seen_isbns and title not in seen_titles:
+            seen_isbns.add(isbn)
+            seen_titles.add(title)
+            unique_books.append(book)
+    
     return unique_books
+
 
 
 if __name__ == '__main__':
