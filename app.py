@@ -54,7 +54,7 @@ def recommend():
 
     return render_template('recommendations.html', books=recommendations)
 
-#use model to predict ratings based on other users ratings
+#use model to predict ratings of books rated highly by users that also rate input book highly
 #Sort recommendations by rating and popularity 
 def svd_ratings(user_id, unique_books, df, model):
     
