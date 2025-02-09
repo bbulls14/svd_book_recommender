@@ -1,0 +1,1 @@
+- [] add steps towards building this website
